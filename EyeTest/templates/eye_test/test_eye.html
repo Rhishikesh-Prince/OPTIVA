@@ -1,0 +1,84 @@
+<!-- eye_test/templates/eye_test/test_eye.html -->
+<!DOCTYPE html>
+{% load static %}
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eye Test</title>
+    <script src="{% static "js/test_eye.js" %}"></script>
+</head>
+
+<body>
+    
+    <h1>Eye Test</h1>
+
+    <!-- Display the current letter with a dynamic font size -->
+    <h2 id="letter-display" style="font-size: {{ letter_list.0.size }}px">{{ letter_list.0.letter }}</h2>
+
+    <!-- Display the spoken letter by the user -->
+    <p id="spoken-letter"></p>
+
+    <!-- Button to start speech recognition -->
+    <button id="start-button">Start Speaking</button>
+
+    <p id="status"></p> <!-- Status of the recognition -->
+
+    <script>
+      
+        // Set up the speech recognition API
+        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.continuous = false; // Stop after the first result
+        recognition.lang = 'en-US'; // Set the language
+        recognition.interimResults = false; // Do not show intermediate results
+
+        const startButton = document.getElementById('start-button');
+        const statusText = document.getElementById('status');
+        const letterDisplay = document.getElementById('letter-display');
+        const spokenLetterDisplay = document.getElementById('spoken-letter'); // Element to show spoken letter
+        let currentLetterIndex = 0;
+        const letterList = {{ letter_list | safe }}; // Passing the letter list from Django context to JavaScript
+
+        // Function to start recognition
+        function startRecognition() {
+            statusText.textContent = "Listening...";
+            recognition.start();
+        }
+
+        // Handle speech recognition results
+        recognition.onresult = function(event) {
+            const spokenWord = event.results[0][0].transcript.toUpperCase();
+            const expectedLetter = letterList[currentLetterIndex].letter.toUpperCase();
+            
+            // Display the letter the user spoke
+            spokenLetterDisplay.textContent = `You said: ${spokenWord}`;
+
+            // Check if the spoken word matches the expected letter
+            if (spokenWord === expectedLetter) {
+                statusText.textContent = "Correct!";
+                currentLetterIndex++;
+                if (currentLetterIndex < letterList.length) {
+                    // Show the next letter and update font size
+                    letterDisplay.textContent = letterList[currentLetterIndex].letter;
+                    letterDisplay.style.fontSize = `${letterList[currentLetterIndex].size}px`;
+                } else {
+                    statusText.textContent = "You've completed the test!";
+                }
+            } else {
+                statusText.textContent = "Try again, please.";
+            }
+        };
+
+        recognition.onerror = function(event) {
+            statusText.textContent = "Error occurred. Try again!";
+        };
+
+        // Start speech recognition on button click
+        startButton.addEventListener('click', function() {
+            startRecognition();
+        });
+    
+    </script>
+
+</body>
+</html>
